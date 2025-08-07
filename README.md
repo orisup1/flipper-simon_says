@@ -41,6 +41,3 @@ Once built, you can run the game on your Flipper Zero device. Follow the instruc
 
 ## Contributing
 Contributions to the project are welcome! Please feel free to submit issues or pull requests to enhance the game or fix any bugs.
-
-## License
-This project is licensed under the MIT License. See the LICENSE file for more details.
