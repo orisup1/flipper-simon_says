@@ -6,32 +6,43 @@
 #define MAX_SEQUENCE_LENGTH 100
 
 void initialize_game() {
-    // Initialize game settings, display, etc.
-    printf("Initializing Flipper Zero Game...\n");
+    display_message("Initializing Flipper Zero Game...");
+}
+
+void show_sequence(const int* sequence, int length) {
+    for (int i = 0; i < length; i++) {
+        char action_msg[32];
+        snprintf(action_msg, sizeof(action_msg), "Press: %s", button_name(sequence[i]));
+        display_message(action_msg);
+        display_button_press(sequence[i]);
+        sleep_ms(700);
+    }
 }
 
 void game_loop() {
     int score = 0;
     int sequence[MAX_SEQUENCE_LENGTH];
+    int user_input[MAX_SEQUENCE_LENGTH];
     int sequence_length = 1;
 
     while (true) {
-        // Generate a new sequence
         generate_sequence(sequence, sequence_length);
-        
-        // Display the sequence to the user
-        for (int i = 0; i < sequence_length; i++) {
-            display_button_press(sequence[i]);
-        }
+        show_sequence(sequence, sequence_length);
 
-        // Get user input
-        if (check_input(sequence, sequence_length)) {
+        get_user_input(user_input, sequence_length);
+
+        if (check_input(user_input, sequence, sequence_length)) {
             score++;
-            sequence_length++; // Increase the length of the sequence
-            printf("Correct! Score: %d\n", score);
+            sequence_length++;
+            char msg[32];
+            snprintf(msg, sizeof(msg), "Correct! Score: %d", score);
+            display_message(msg);
+            sleep_ms(1000);
         } else {
-            printf("Wrong! Final Score: %d\n", score);
-            break; // End the game on wrong input
+            char msg[32];
+            snprintf(msg, sizeof(msg), "Wrong! Final Score: %d", score);
+            display_message(msg);
+            break;
         }
     }
 }
