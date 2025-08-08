@@ -1,5 +1,5 @@
 # Flipper Zero Simon Says electronic game
-
+## V1.0
 ## Overview
 The Flipper Zero Game is an interactive game designed for the Flipper Zero device. The game challenges users to replicate a series of button presses displayed on the device's direction pad. As users successfully replicate the sequences, the difficulty increases, providing an engaging and fun experience.
 
