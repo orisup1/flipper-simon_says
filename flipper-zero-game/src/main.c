@@ -5,15 +5,18 @@
 #include <unistd.h>
 #endif
 
-#include "game_logic.h"
-#include "input.h"
-#include "random.h"
+#include "game/game_logic.h"
+#include "game/input.h"
+#include "utils/random.h"
 
 #ifndef DESKTOP
 #include <furi.h>
 #endif
 
 #define MAX_SEQUENCE_LENGTH 100
+
+static int g_sequence[MAX_SEQUENCE_LENGTH];
+static int g_user_input[MAX_SEQUENCE_LENGTH];
 
 static void sleep_ms(int ms) {
 #ifndef DESKTOP
@@ -28,7 +31,7 @@ void initialize_game() {
     init_random();
 #ifndef DESKTOP
     input_init();
-    display_message("Initializing Flipper Zero Game...");
+    display_message("Simon Says\nOK: Start  Back: Exit");
 #else
     display_message("Initializing Flipper Zero Game (Terminal Simulation)...");
 #endif
@@ -40,39 +43,58 @@ void show_sequence(const int* sequence, int length) {
         snprintf(action_msg, sizeof(action_msg), "Press: %s", button_name(sequence[i]));
         display_message(action_msg);
         display_button_press(sequence[i]);
-        sleep_ms(700);
+        sleep_ms(600);
     }
 }
 
-void game_loop() {
+static void run_rounds(void) {
     int score = 0;
-    int sequence[MAX_SEQUENCE_LENGTH];
-    int user_input[MAX_SEQUENCE_LENGTH];
-    int sequence_length = 1;
+    int sequence_length = 0;
+
+    append_next_step(g_sequence, sequence_length);
+    sequence_length = 1;
 
     while (true) {
-        generate_sequence(sequence, sequence_length);
-        show_sequence(sequence, sequence_length);
+        show_sequence(g_sequence, sequence_length);
+        // Clear screen after sequence
+        display_clear();
+        sleep_ms(150);
+        input_flush_events();
 
-        get_user_input(user_input, sequence_length);
+        if(!get_user_input(g_user_input, sequence_length)) {
+            continue;
+        }
 
-        if (check_input(user_input, sequence, sequence_length)) {
+        if (check_input(g_user_input, g_sequence, sequence_length)) {
             score++;
-            sequence_length++;
             char msg[64];
             snprintf(msg, sizeof(msg), "Correct! Score: %d", score);
             display_message(msg);
-            sleep_ms(1000);
-            if(sequence_length > MAX_SEQUENCE_LENGTH) {
+            sleep_ms(500);
+            if(sequence_length >= MAX_SEQUENCE_LENGTH) {
                 display_message("Max sequence length reached! You win!");
                 break;
             }
+            append_next_step(g_sequence, sequence_length);
+            sequence_length++;
         } else {
             char msg[64];
             snprintf(msg, sizeof(msg), "Wrong! Final Score: %d", score);
             display_message(msg);
+            sleep_ms(1200);
             break;
         }
+    }
+}
+
+void game_loop() {
+    while(true) {
+        if(!wait_for_ok_or_back()) {
+            return; // Back: exit app
+        }
+        run_rounds();
+        // After finishing, return to menu
+        display_message("Simon Says\nOK: Start  Back: Exit");
     }
 }
 
@@ -83,7 +105,6 @@ int main() {
     return 0;
 }
 #else
-// Flipper app entry point matching application.fam
 int32_t simonsays_main(void* p) {
     (void)p;
     initialize_game();

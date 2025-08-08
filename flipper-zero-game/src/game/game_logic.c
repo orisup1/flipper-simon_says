@@ -1,14 +1,10 @@
 #include <stdio.h>
 #include "game_logic.h"
-#include "random.h"
+#include "../utils/random.h"
 
-void generate_sequence(int* sequence, int length) {
-    if(sequence == NULL || length <= 0) {
-        return;
-    }
-    for(int i = 0; i < length; i++) {
-        sequence[i] = get_random_number(0, 3); // 0..3 representing UP, DOWN, LEFT, RIGHT
-    }
+void append_next_step(int* sequence, int index) {
+    if(!sequence || index < 0 || index >= MAX_SEQUENCE_LENGTH) return;
+    sequence[index] = get_random_number(0, 3);
 }
 
 int check_input(int* user_input, int* sequence, int length) {
