@@ -1,0 +1,5 @@
+App("SimonSays", "simonsays", "applications_user") {
+    entry_point: "simonsays_main",
+    apptype: AppType.EXTERNAL,
+    requires: ["gui"],
+} 
