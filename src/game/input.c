@@ -7,19 +7,47 @@
 #include <furi.h>
 #include <furi_hal.h>
 #include <gui/gui.h>
+#include <gui/canvas.h>
 #include <input/input.h>
+
+// XBM assets (1-bit bitmaps) generated from PNGs
+#include "../../assets/base.xbm"
+#include "../../assets/base-up.xbm"
+#include "../../assets/base-down.xbm"
+#include "../../assets/base-left.xbm"
+#include "../../assets/base-right.xbm"
 
 static Gui* gui = NULL;
 static ViewPort* viewport = NULL;
 static FuriMessageQueue* input_queue = NULL;
 static char draw_text_buf[48] = {0};
 
+// Current image to draw (when set). When NULL, text buffer will be drawn instead
+static const unsigned char* current_image_bits = NULL;
+static int current_image_width = 0;
+static int current_image_height = 0;
+
+static void set_current_image(const unsigned char* bits, int width, int height) {
+    current_image_bits = bits;
+    current_image_width = width;
+    current_image_height = height;
+    if(viewport) view_port_update(viewport);
+}
+
 static void draw_callback(Canvas* canvas, void* context) {
     (void)context;
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 2, 12, draw_text_buf);
+    if(current_image_bits != NULL && current_image_width > 0 && current_image_height > 0) {
+        int x = (128 - current_image_width) / 2;
+        int y = (64 - current_image_height) / 2;
+        if(x < 0) x = 0;
+        if(y < 0) y = 0;
+        canvas_draw_xbm(canvas, x, y, current_image_width, current_image_height, current_image_bits);
+    } else {
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 12, draw_text_buf);
+    }
 }
 
 static void input_callback(InputEvent* event, void* context) {
@@ -35,6 +63,8 @@ void input_init(void) {
     view_port_draw_callback_set(viewport, draw_callback, NULL);
     view_port_input_callback_set(viewport, input_callback, input_queue);
     gui_add_view_port(gui, viewport, GuiLayerFullscreen);
+    // Default to base image when there is no specific message
+    set_current_image(base_bits, base_width, base_height);
 }
 
 void input_deinit(void) {
@@ -57,7 +87,8 @@ void input_deinit(void) {
 
 void display_clear(void) {
     draw_text_buf[0] = '\0';
-    if(viewport) view_port_update(viewport);
+    // After clearing, show base image
+    set_current_image(base_bits, base_width, base_height);
 }
 
 void input_flush_events(void) {
@@ -75,9 +106,11 @@ static void set_draw_text(const char* text) {
         draw_text_buf[i] = text[i];
     }
     draw_text_buf[i] = '\0';
-    if(viewport) {
-        view_port_update(viewport);
-    }
+    // When text is set, prefer rendering text (disable image)
+    current_image_bits = NULL;
+    current_image_width = 0;
+    current_image_height = 0;
+    if(viewport) view_port_update(viewport);
 }
 
 static int map_key_to_code(InputKey key) {
@@ -179,7 +212,23 @@ void display_message(const char* message) {
 
 void display_button_press(int button) {
 #ifndef DESKTOP
-    set_draw_text(button_name(button));
+    switch(button) {
+        case 0: // UP
+            set_current_image(up_bits, up_width, up_height);
+            break;
+        case 1: // DOWN
+            set_current_image(down_bits, down_width, down_height);
+            break;
+        case 2: // LEFT
+            set_current_image(left_bits, left_width, left_height);
+            break;
+        case 3: // RIGHT
+            set_current_image(right_bits, right_width, right_height);
+            break;
+        default:
+            set_current_image(base_bits, base_width, base_height);
+            break;
+    }
 #else
     printf("[ %s ]\n", button_name(button));
     fflush(stdout);
