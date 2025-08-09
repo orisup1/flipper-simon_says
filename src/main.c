@@ -90,6 +90,9 @@ void game_loop() {
         if(!wait_for_ok_or_back()) {
             return; // Back: exit app
         }
+        // Briefly show base image before the first sequence starts
+        display_clear();
+        sleep_ms(500);
         run_rounds();
         // After finishing, return to menu
         display_message("Simon Says\nOK: Start  Back: Exit");
