@@ -1,5 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -I./src/game -I./src/utils
+# Default to desktop build: define DESKTOP so desktop code paths are compiled
+CFLAGS = -Wall -std=c11 -DDESKTOP -I./src/game -I./src/utils
 SRC = src/main.c src/game/game_logic.c src/game/input.c src/utils/random.c
 OBJ = $(SRC:.c=.o)
 TARGET = flipper_zero_game

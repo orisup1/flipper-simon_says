@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdbool.h>
 #include "input.h"
 
 #ifndef DESKTOP
@@ -113,26 +114,26 @@ static void set_draw_text(const char* text) {
     if(viewport) view_port_update(viewport);
 }
 
-static int map_key_to_code(InputKey key) {
+static ButtonCode map_key_to_code(InputKey key) {
     switch(key) {
-        case InputKeyUp: return 0;
-        case InputKeyDown: return 1;
-        case InputKeyLeft: return 2;
-        case InputKeyRight: return 3;
-        case InputKeyOk: return 4;
-        case InputKeyBack: return 5;
-        default: return -1;
+        case InputKeyUp: return ButtonUp;
+        case InputKeyDown: return ButtonDown;
+        case InputKeyLeft: return ButtonLeft;
+        case InputKeyRight: return ButtonRight;
+        case InputKeyOk: return ButtonOk;
+        case InputKeyBack: return ButtonBack;
+        default: return (ButtonCode)-1;
     }
 }
 
-static int read_button_press_strict(void) {
+static ButtonCode read_button_press_strict(void) {
     InputEvent ev;
     // Wait for a press/short
     while(true) {
         if(furi_message_queue_get(input_queue, &ev, FuriWaitForever) != FuriStatusOk) continue;
         if(ev.type == InputTypePress || ev.type == InputTypeShort) {
-            int code = map_key_to_code(ev.key);
-            if(code == -1) continue;
+            ButtonCode code = map_key_to_code(ev.key);
+            if(code == (ButtonCode)-1) continue;
             // Now wait for release of that same key to avoid repeats
             InputKey released_key = ev.key;
             while(true) {
@@ -146,13 +147,13 @@ static int read_button_press_strict(void) {
     }
 }
 
-int wait_for_ok_or_back(void) {
+bool wait_for_ok_or_back(void) {
     input_flush_events();
-    set_draw_text("Simon Says\nOK: Start  Back: Exit");
+    set_draw_text("Simon Says -> OK: Start  Back: Exit");
     while(true) {
-        int b = read_button_press_strict();
-        if(b == 4) return 1;
-        if(b == 5) return 0;
+        ButtonCode b = read_button_press_strict();
+        if(b == ButtonOk) return true;
+        if(b == ButtonBack) return false;
     }
 }
 
@@ -163,37 +164,37 @@ void input_deinit(void) {}
 void input_flush_events(void) {}
 void display_clear(void) { printf("\n"); }
 
-static int clamp_button(int value) {
-    if(value < 0) return 0;
-    if(value > 3) return 3;
+static ButtonCode clamp_button(ButtonCode value) {
+    if(value < ButtonUp) return ButtonUp;
+    if(value > ButtonRight) return ButtonRight;
     return value;
 }
 
-int wait_for_ok_or_back(void) {
+bool wait_for_ok_or_back(void) {
     printf("Simon Says - Press ENTER to start, or type 'q' to quit.\n");
     while(1) {
         int ch = getchar();
-        if(ch == 'q' || ch == 'Q') return 0;
-        if(ch == '\n') return 1;
+        if(ch == 'q' || ch == 'Q') return false;
+        if(ch == '\n') return true;
     }
 }
 #endif
 
-const char* button_name(int button) {
+const char* button_name(ButtonCode button) {
 #ifndef DESKTOP
     switch(button) {
-        case 0: return "UP";
-        case 1: return "DOWN";
-        case 2: return "LEFT";
-        case 3: return "RIGHT";
+        case ButtonUp: return "UP";
+        case ButtonDown: return "DOWN";
+        case ButtonLeft: return "LEFT";
+        case ButtonRight: return "RIGHT";
         default: return "?";
     }
 #else
     switch(clamp_button(button)) {
-        case 0: return "UP";
-        case 1: return "DOWN";
-        case 2: return "LEFT";
-        case 3: return "RIGHT";
+        case ButtonUp: return "UP";
+        case ButtonDown: return "DOWN";
+        case ButtonLeft: return "LEFT";
+        case ButtonRight: return "RIGHT";
         default: return "?";
     }
 #endif
@@ -210,19 +211,19 @@ void display_message(const char* message) {
 #endif
 }
 
-void display_button_press(int button) {
+void display_button_press(ButtonCode button) {
 #ifndef DESKTOP
     switch(button) {
-        case 0: // UP
+        case ButtonUp:
             set_current_image(up_bits, up_width, up_height);
             break;
-        case 1: // DOWN
+        case ButtonDown:
             set_current_image(down_bits, down_width, down_height);
             break;
-        case 2: // LEFT
+        case ButtonLeft:
             set_current_image(left_bits, left_width, left_height);
             break;
-        case 3: // RIGHT
+        case ButtonRight:
             set_current_image(right_bits, right_width, right_height);
             break;
         default:
@@ -248,27 +249,27 @@ static int read_int_from_stdin(void) {
 }
 #endif
 
-int get_user_input(int* user_input, int length) {
-    if(user_input == NULL || length <= 0) return 0;
+bool get_user_input(ButtonCode* user_input, int length) {
+    if(user_input == NULL || length <= 0) return false;
 
 #ifndef DESKTOP
     input_flush_events();
     for(int i = 0; i < length; i++) {
-        int code = read_button_press_strict();
-        if(code == 5) { // Back - ignore during input
+        ButtonCode code = read_button_press_strict();
+        if(code == ButtonBack) { // ignore during input
             i--;
             continue;
         }
-        if(code == 4) { // OK - ignore as input
+        if(code == ButtonOk) { // ignore as input
             i--;
             continue;
         }
-        if(code >= 0 && code <= 3) {
+        if(code <= ButtonRight) {
             user_input[i] = code;
             display_button_press(code);
         }
     }
-    return 1;
+    return true;
 #else
     for(int i = 0; i < length; i++) {
         while(1) {
@@ -277,12 +278,12 @@ int get_user_input(int* user_input, int length) {
             int value = read_int_from_stdin();
             if(value == 9) return 0;
             if(value >= 0 && value <= 3) {
-                user_input[i] = value;
+                user_input[i] = (ButtonCode)value;
                 break;
             }
             printf("Invalid input. Please enter a number 0-3 or 9 to quit.\n");
         }
     }
-    return 1;
+    return true;
 #endif
 }

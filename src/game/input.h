@@ -2,6 +2,18 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+#include <stdbool.h>
+
+// Logical buttons used by the game
+typedef enum ButtonCode {
+    ButtonUp = 0,
+    ButtonDown = 1,
+    ButtonLeft = 2,
+    ButtonRight = 3,
+    ButtonOk = 4,
+    ButtonBack = 5,
+} ButtonCode;
+
 // Initialize input/UI (no-op on desktop; required on Flipper)
 void input_init(void);
 // Deinitialize input/UI (no-op on desktop; required on Flipper)
@@ -13,18 +25,20 @@ void input_flush_events(void);
 // Clear display content
 void display_clear(void);
 
-// Wait for OK (center) to start or Back to exit. Returns 1 if OK, 0 if Back.
-int wait_for_ok_or_back(void);
+// Wait for OK (center) to start or Back to exit.
+// Returns true if OK was pressed, false if Back was pressed.
+bool wait_for_ok_or_back(void);
 
-// Reads a sequence of button presses from the user (0=UP, 1=DOWN, 2=LEFT, 3=RIGHT)
-// Returns 1 if input captured successfully, 0 if cancelled with Back.
-int get_user_input(int* user_input, int length);
+// Read a sequence of directional button presses from the user.
+// Only ButtonUp/ButtonDown/ButtonLeft/ButtonRight are captured.
+// Returns true if input captured successfully, false if cancelled with Back.
+bool get_user_input(ButtonCode* user_input, int length);
 
-// Function to display the button press feedback
-void display_button_press(int button);
+// Display visual feedback for a button press
+void display_button_press(ButtonCode button);
 
-// Returns a human-readable name for a button index
-const char* button_name(int button);
+// Returns a human-readable name for a button
+const char* button_name(ButtonCode button);
 
 // Displays a message to the user
 void display_message(const char* message);

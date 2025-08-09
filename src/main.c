@@ -13,10 +13,8 @@
 #include <furi.h>
 #endif
 
-#define MAX_SEQUENCE_LENGTH 100
-
-static int g_sequence[MAX_SEQUENCE_LENGTH];
-static int g_user_input[MAX_SEQUENCE_LENGTH];
+static ButtonCode g_sequence[MAX_SEQUENCE_LENGTH];
+static ButtonCode g_user_input[MAX_SEQUENCE_LENGTH];
 
 static void sleep_ms(int ms) {
 #ifndef DESKTOP
@@ -37,7 +35,7 @@ void initialize_game() {
 #endif
 }
 
-void show_sequence(const int* sequence, int length) {
+void show_sequence(const ButtonCode* sequence, int length) {
     for (int i = 0; i < length; i++) {
         char action_msg[64];
         snprintf(action_msg, sizeof(action_msg), "Press: %s", button_name(sequence[i]));
