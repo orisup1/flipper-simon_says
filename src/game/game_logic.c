@@ -5,8 +5,17 @@
 
 void append_next_step(ButtonCode* sequence, int index) {
     if(sequence == NULL || index < 0 || index >= MAX_SEQUENCE_LENGTH) return;
-    // Generate a random directional button (0..3)
-    sequence[index] = (ButtonCode)get_random_number(0, 3);
+
+    ButtonCode next_button;
+    if(index == 0) {
+        next_button = (ButtonCode)get_random_number(0, 3);
+    } else {
+        ButtonCode previous_button = sequence[index - 1];
+        do {
+            next_button = (ButtonCode)get_random_number(0, 3);
+        } while(next_button == previous_button);
+    }
+    sequence[index] = next_button;
 }
 
 bool check_input(const ButtonCode* user_input, const ButtonCode* sequence, int length) {
